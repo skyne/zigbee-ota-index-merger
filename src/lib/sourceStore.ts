@@ -25,9 +25,11 @@ const sanitizeEntries = (entries: unknown): SourceEntry[] => {
 
   const seen = new Set<string>();
 
-  return entries.flatMap((entry) => {
+  const sanitized: SourceEntry[] = [];
+
+  for (const entry of entries) {
     if (typeof entry !== "object" || entry === null) {
-      return [];
+      continue;
     }
 
     if ("type" in entry && (entry as { type?: unknown }).type === "url") {
@@ -38,32 +40,36 @@ const sanitizeEntries = (entries: unknown): SourceEntry[] => {
       }
       const trimmed = value.trim();
       if (!trimmed) {
-        return [];
+        continue;
       }
       let id = typeof rawId === "string" ? rawId : createStoredUrlId(trimmed);
       while (seen.has(id)) {
         id = `${id}:${randomUUID()}`;
       }
       seen.add(id);
-      return [{ id, type: "url", value: trimmed }];
+      sanitized.push({ id, type: "url", value: trimmed });
+      continue;
     }
 
     if ("type" in entry && (entry as { type?: unknown }).type === "raw") {
       const value = (entry as { value?: unknown }).value;
       const rawId = (entry as { id?: unknown }).id;
       if (!Array.isArray(value)) {
-        return [];
+        continue;
       }
       let id = typeof rawId === "string" ? rawId : createStoredRawId();
       while (seen.has(id)) {
         id = createStoredRawId();
       }
       seen.add(id);
-      return [{ id, type: "raw", value }];
+      sanitized.push({ id, type: "raw", value });
+      continue;
     }
 
-    return [];
-  });
+    continue;
+  }
+
+  return sanitized;
 };
 
 const sanitizeOrder = (order: unknown): string[] => {
@@ -90,12 +96,16 @@ const migrateLegacyPayload = (payload: unknown): SourcesPayload => {
   }
 
   if ("urls" in payload) {
-    const urls = Array.isArray((payload as { urls?: unknown }).urls)
-      ? (payload as { urls?: unknown }).urls
+    const rawUrls = (payload as { urls?: unknown }).urls;
+    const urls = Array.isArray(rawUrls)
+      ? rawUrls.filter((value): value is string => typeof value === "string")
       : [];
     const entries = urls
-      .filter((value) => typeof value === "string")
-      .map((value) => ({ type: "url" as const, value: value.trim() }))
+      .map((value) => ({
+        id: createStoredUrlId(value.trim()),
+        type: "url" as const,
+        value: value.trim(),
+      }))
       .filter((entry) => entry.value);
     return { entries, order: entries.map((entry) => entry.id) };
   }
@@ -156,6 +166,7 @@ const orderEntries = (entries: SourceEntry[], order: string[]) => {
 
 export const getSourcesState = async () => {
   const { entries: storedEntries, order } = await getStoredState();
+  const safeOrder = order ?? [];
   const envUrls = env.indexSourceUrls;
   const envEntries: SourceEntry[] = envUrls.map((url) => ({
     id: `env:url:${url}`,
@@ -164,13 +175,13 @@ export const getSourcesState = async () => {
   }));
   const combinedEntries = orderEntries(
     [...envEntries, ...storedEntries],
-    order
+    safeOrder
   );
-  const orderedStoredEntries = orderEntries(storedEntries, order);
+  const orderedStoredEntries = orderEntries(storedEntries, safeOrder);
   return {
     envUrls,
     storedEntries: orderedStoredEntries,
     combinedEntries,
-    order,
+    order: safeOrder,
   };
 };

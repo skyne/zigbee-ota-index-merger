@@ -18,7 +18,10 @@ export async function POST(request: Request) {
       : Array.isArray(body.urls)
         ? body.urls.map((value) => ({ type: "url", value }))
         : [];
-    const storedState = await saveStoredState(entries, body.order as unknown);
+    const storedState = await saveStoredState(
+      entries,
+      Array.isArray(body.order) ? (body.order as string[]) : undefined
+    );
     const state = await getSourcesState();
     return NextResponse.json(
       { ...state, storedEntries: storedState.entries, order: storedState.order },
