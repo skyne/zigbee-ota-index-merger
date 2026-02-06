@@ -1,0 +1,33 @@
+{
+  "entries": [
+    {
+      "type": "raw",
+      "value": [
+        {
+          "filename": "1141-d3a3-1111114b-tuya_thermostat_zrd.zigbee",
+          "url": "https://github.com/slacky1965/tuya_thermostat_zrd/releases/download/v.1.0.20/1141-d3a3-1111114b-tuya_thermostat_zrd.zigbee",
+          "modelId": "TS0601",
+          "manufacturerName": [
+            "_TZE204_u9bfwha0",
+            "_TZE204_aoclfnxz",
+            "_TZE200_edl8pz1k",
+            "_TZE204_edl8pz1k",
+            "_TZE204_tagezcph",
+            "_TZE204_xyugziqv",
+            "_TZE204_5toc8efa",
+            "_TZE204_lzriup1j",
+            "_TZE204_gops3slb",
+            "_TZE204_oh8y8pv8",
+            "_TZE284_cvub6xbb",
+            "_TZE204_mpbki2zm",
+            "_TZE200_7rghpoxo",
+            "_TZE204_7rghpoxo",
+            "_TZE204_6a4vxfnv",
+            "_TZE204_szbxmorb"
+          ],
+          "force": true
+        }
+      ]
+    }
+  ]
+}
