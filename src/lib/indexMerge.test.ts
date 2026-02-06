@@ -1,19 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { mergeIndexSources, toManufacturerEntry } from "@/lib/indexMerge";
+import { getEntryKey, mergeIndexSources, toIndexEntry } from "@/lib/indexMerge";
 
-describe("toManufacturerEntry", () => {
-  it("returns null for invalid entries", () => {
-    expect(toManufacturerEntry(null)).toBeNull();
-    expect(toManufacturerEntry({})).toBeNull();
-    expect(toManufacturerEntry({ manufacturerCode: 1 })).toBeNull();
-    expect(toManufacturerEntry({ imageType: 2 })).toBeNull();
+describe("toIndexEntry", () => {
+  it("returns null for non-objects", () => {
+    expect(toIndexEntry(null)).toBeNull();
+    expect(toIndexEntry("nope")).toBeNull();
   });
 
-  it("accepts entries with manufacturerCode and imageType", () => {
-    const entry = toManufacturerEntry({ manufacturerCode: 1, imageType: 2, foo: "bar" });
+  it("accepts objects without required keys", () => {
+    const entry = toIndexEntry({ url: "./file.ota", foo: "bar" });
     expect(entry).not.toBeNull();
-    expect(entry?.manufacturerCode).toBe(1);
-    expect(entry?.imageType).toBe(2);
+    expect(entry?.url).toBe("./file.ota");
+  });
+});
+
+describe("getEntryKey", () => {
+  it("prefers manufacturerCode + imageType", () => {
+    const key = getEntryKey({ manufacturerCode: 1, imageType: 2 });
+    expect(key).toBe("mc:1::it:2");
+  });
+
+  it("returns null when manufacturerCode or imageType missing", () => {
+    expect(getEntryKey({ manufacturerName: "_TZE200_test", modelId: "TS0601" })).toBeNull();
   });
 });
 
@@ -31,17 +39,26 @@ describe("mergeIndexSources", () => {
     ];
 
     const merged = mergeIndexSources(sources);
-    const byKey = new Map(merged.map((entry) => [`${entry.manufacturerCode}::${entry.imageType}`, entry]));
+    const byKey = new Map(
+      merged.map((entry) => [
+        `${entry.manufacturerCode}::${entry.imageType}`,
+        entry,
+      ])
+    );
 
     expect(byKey.get("1::100")?.value).toBe("c");
     expect(byKey.get("2::200")?.value).toBe("b");
     expect(byKey.get("3::300")?.value).toBe("d");
+    expect(merged[0]?.manufacturerCode).toBe(1);
+    expect(merged[0]?.imageType).toBe(100);
   });
 
-  it("ignores items without required keys", () => {
-    const sources = [[{ manufacturerCode: 1, imageType: 10 }, { foo: "bar" }]];
+  it("keeps entries without manufacturerCode as-is", () => {
+    const sources = [
+      [{ manufacturerName: "_TZE200_test", modelId: "TS0601" }],
+      [{ manufacturerName: "_TZE200_test", modelId: "TS0601", foo: "bar" }],
+    ];
     const merged = mergeIndexSources(sources);
-    expect(merged).toHaveLength(1);
-    expect(merged[0]?.manufacturerCode).toBe(1);
+    expect(merged).toHaveLength(2);
   });
 });
